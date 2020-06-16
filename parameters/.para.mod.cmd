@@ -1,0 +1,1 @@
+cmd_/home/naveen/Desktop/kernel_trg/kernel_assignment/Kernel_codes_practice/parameters/para.mod := { echo  /home/naveen/Desktop/kernel_trg/kernel_assignment/Kernel_codes_practice/parameters/para.o; echo; } > /home/naveen/Desktop/kernel_trg/kernel_assignment/Kernel_codes_practice/parameters/para.mod
