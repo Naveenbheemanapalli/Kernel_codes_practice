@@ -4,8 +4,10 @@
 #include<linux/kfifo.h>
 MODULE_LICENSE("GPL");
 
+static struct kfifo fifo;
+
 static int __init init_code(void){
-	struct kfifo fifo;
+	
 	unsigned int ret;
 	unsigned int i=0;
 	
@@ -35,6 +37,7 @@ static int __init init_code(void){
 
 static void __exit exit_code(void){
     pr_info("clean-up code");
+    kfifo_free(&fifo);
 
 }
 
