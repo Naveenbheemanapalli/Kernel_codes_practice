@@ -24,6 +24,6 @@ else
   EXTRA_CFLAGS += -DDEBUG #-DUSE_FTRACE_PRINT
   $(info @@@ Building for ARCH=${ARCH}, CROSS_COMPILE=${CROSS_COMPILE}, KERNELRELEASE=${KERNELRELEASE}; EXTRA_CFLAGS=${EXTRA_CFLAGS} @@@)
   
-  obj-m :=    queue.o
+  obj-m +=    queue.o
 
 endif
