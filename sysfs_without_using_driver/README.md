@@ -5,8 +5,13 @@
 		
 To use :-
 ========
+
+
 Writing :-
 	echo "Data" > /sys/sasken/training
+	
+	
+	
 Reading :-
 	cat /sys/sasken/training
 	
