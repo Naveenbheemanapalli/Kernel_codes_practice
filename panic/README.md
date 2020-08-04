@@ -1,3 +1,6 @@
+BEFORE GOING TO RUN, PLEASE GO THROUGH THE PPT IN THE FOLDER
+
+
 -> To run the kernel module use the commands as follows
 1) make 
 2) sudo insmod ./panic_example.ko -> to initialize the module
