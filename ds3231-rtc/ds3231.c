@@ -121,7 +121,7 @@ struct ds3231_data {
 	struct device 		*dev;
 	struct cdev				cdev;
 	//struct regmap 		*regmap;
-	struct mutex			lock;
+	struct mutex			update_lock;
 	//struct rtc_device 	*rtc; /* An RTC device is represented in the kernel as an instance of the struct rtc_device structure */
 };
 
