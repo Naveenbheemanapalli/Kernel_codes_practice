@@ -62,19 +62,65 @@ int chip_read_value(struct i2c_client *client, u8 reg){
 	return val;
 }
 
+int chip_write_value(struct i2c_client *client,u8 reg, u8 value){
+	int val = 0;
+	dev_info(&client->dev, "%s\n", __FUNCTION__);
+	
+	val = i2c_smbus_write_byte_data(client, reg, value);
+	
+	dev_info(&client->dev, "%s : write reg [%02x] returned [%d]\n", __FUNCTION__, reg, val);
+}
+
 ///////********************* file operations ***********************************///////////
 
 static int chip_i2c_open(struct inode * inode, struct file *filep)
 {
-		pr_info("Opened ....!\n");
+	int ret=0,tmp=0;
+	if (chip_i2c_client == NULL)
+		return -ENODEV;
+		
 	if (!mutex_trylock(&chip_i2c_mutex)){
 		pr_err("%s: Device currently in use!\n", __FUNCTION__);
     return -EBUSY;
 	}
-
-	if (chip_i2c_client == NULL)
-		return -ENODEV;
-		
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
+	if(ret < 0){
+			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
+			return ret;	
+	}	
+	if( ret & DS3231_BIT_EOSC)
+		ret &= ~DS3231_BIT_EOSC;
+	
+	ret = chip_write_value(chip_i2c_client,DS3231_REG_CONTROL,ret);
+	if(ret < 0){
+		pr_err("%s: error in the control register writing..!\n",__FUNCTION__);
+		return ret;
+	}
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL+1);
+	if(ret < 0){
+			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
+			return ret;	
+	}
+	if(ret & DS3231_BIT_OSF){
+		chip_write_value(chip_i2c_client,DS3231_REG_CONTROL,ret & ~DS3231_BIT_OSF);
+	}
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
+	if(ret < 0){
+		pr_err("%s:  error in reading the DS3231_REG_HOUR register..!\n",__FUNCTION__);
+		return ret;
+	}
+	tmp = ret;
+	if(!(ret & DS3231_REG_HOUR));
+	else{
+		ret = bcd2bin(ret & 0x1f);
+		if(ret == 12)
+			ret = 0;
+		if(tmp & DS3231_BIT_PM)
+			ret += 12;
+		chip_write_value(chip_i2c_client,DS3231_REG_HOUR,bin2bcd(ret));
+	
+	}		
 	return 0;
 }
 
@@ -92,16 +138,36 @@ static ssize_t chip_i2c_write(struct file *filep, const char __user * buf, size_
 }
 
 static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,loff_t *offset){
-	//pr_info("Read ....!\n");
-	u8 reg =0,i=0;
-		int ret = chip_read_value(chip_i2c_client,DS3231_REG_SECS);
-		pr_info("secs = %d.....!\n",ret);
-		int ret	=	chip_read_value(chip_i2c_client,DS3231_REG_MIN);
-		pr_info("Min = %d ...!\n",ret);
-		int ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
-		pr_info("HOur = %d ...!\n",ret);
+	u8 regs[8];
+	int ret=0;
+	memset(regs,0,8);
 	
-	return count;
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_SECS);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of seconds ..!\n",__FUNCTION__);
+		goto err;
+	}
+	regs[0] = bcd2bin(ret & 0x7f); ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_MIN);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of minutes ..!\n",__FUNCTION__);
+		goto err;
+	}
+	reg[1] = bcd2bin(ret & 0x7f); ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
+		goto err;
+	}
+	reg[2] = bcd2bin(ret & 0x3f); ret=0;
+	
+	
+	
+		
+err:
+	return ret;
 }
 
 /*static ssize_t get_time_show(struct device *dev,struct device_attribute *attr, char *buf)
@@ -173,7 +239,7 @@ static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id
         
     i2c_set_clientdata(client, data);
     
-    mutex_init(&data->lock);
+    mutex_init(&data->update_lock);
     chip_i2c_client = client;
     
     chip_major = register_chrdev(0, CHIP_I2C_DEVICE_NAME,&chip_i2c_fops);
