@@ -94,11 +94,12 @@ static ssize_t chip_i2c_write(struct file *filep, const char __user * buf, size_
 static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,loff_t *offset){
 	//pr_info("Read ....!\n");
 	u8 reg =0,i=0;
-	for(i=0;i<30;i++){
 		int ret = chip_read_value(chip_i2c_client,DS3231_REG_SECS);
 		pr_info("secs = %d.....!\n",ret);
-		mdelay(400);
-	}
+		int ret	=	chip_read_value(chip_i2c_client,DS3231_REG_MIN);
+		pr_info("Min = %d ...!\n",ret);
+		int ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
+		pr_info("HOur = %d ...!\n",ret);
 	
 	return count;
 }
