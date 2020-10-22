@@ -162,8 +162,37 @@ static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,lo
 		goto err;
 	}
 	reg[2] = bcd2bin(ret & 0x3f); ret=0;
+	pr_info("Time : %d - %d -%d ...!\n",reg[2],reg[1],reg[0]);
 	
 	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_WDAY);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of Week day ..!\n",__FUNCTION__);
+		goto err;
+	}
+	reg[3] = bcd2bin(ret & 0x07); ret=0;	
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_MDAY);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
+		goto err;
+	}
+	reg[4] = bcd2bin(ret & 0x3f); ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_MONTH);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
+		goto err;
+	}
+	reg[5] = bcd2bin(ret & 0x1f); ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_YEAR);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
+		goto err;
+	}
+	reg[6] = bcd2bin(ret); ret=0;
+	pr_info("Date : %d - %d -%d ...!\n",reg[4],reg[5],reg[6]);
 	
 		
 err:
