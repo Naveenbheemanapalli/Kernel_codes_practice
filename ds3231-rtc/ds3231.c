@@ -14,6 +14,8 @@
 #include <linux/regmap.h>
 #include <linux/delay.h>
 
+#define MEMORY  2048
+
 #define DS3231_REG_SECS			0x00
 #define DS3231_BIT_CH				0x80
 #define DS3231_REG_MIN			0x01
@@ -37,7 +39,7 @@ static struct i2c_client * chip_i2c_client = NULL;
 static struct class *chip_class = NULL;
 static struct device *device_chip = NULL;
 static int chip_major=0;
-//static u8 regs[8];
+static char *kernel_buf = NULL;
 
 
 /// for 1 process at a time..
@@ -46,7 +48,7 @@ static DEFINE_MUTEX(chip_i2c_mutex);
 static const unsigned short normal_i2c[] = { 0x68, I2C_CLIENT_END };
 
 
-int chip_read_value(struct i2c_client *client, u8 reg){
+static int chip_read_value(struct i2c_client *client, u8 reg){
 	struct ds3231_data *data = i2c_get_clientdata(client);
 	int val = 0;
 	
@@ -62,27 +64,21 @@ int chip_read_value(struct i2c_client *client, u8 reg){
 	return val;
 }
 
-int chip_write_value(struct i2c_client *client,u8 reg, u8 value){
+static int chip_write_value(struct i2c_client *client,u8 reg, u8 value){
 	int val = 0;
 	dev_info(&client->dev, "%s\n", __FUNCTION__);
 	
 	val = i2c_smbus_write_byte_data(client, reg, value);
 	
 	dev_info(&client->dev, "%s : write reg [%02x] returned [%d]\n", __FUNCTION__, reg, val);
+	
+	return val;
 }
 
-///////********************* file operations ***********************************///////////
 
-static int chip_i2c_open(struct inode * inode, struct file *filep)
-{
+static int dev_configure(void){
 	int ret=0,tmp=0;
-	if (chip_i2c_client == NULL)
-		return -ENODEV;
-		
-	if (!mutex_trylock(&chip_i2c_mutex)){
-		pr_err("%s: Device currently in use!\n", __FUNCTION__);
-    return -EBUSY;
-	}
+	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
 	if(ret < 0){
 			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
@@ -120,13 +116,36 @@ static int chip_i2c_open(struct inode * inode, struct file *filep)
 			ret += 12;
 		chip_write_value(chip_i2c_client,DS3231_REG_HOUR,bin2bcd(ret));
 	
-	}		
+	}
+	return 0;		
+}
+
+
+///////********************* file operations ***********************************///////////
+
+static int chip_i2c_open(struct inode * inode, struct file *filep)
+{
+	if (chip_i2c_client == NULL)
+		return -ENODEV;
+		
+	if (!mutex_trylock(&chip_i2c_mutex)){
+		pr_err("%s: Device currently in use!\n", __FUNCTION__);
+    return -EBUSY;
+	}
+	
+	kernel_buf = kzalloc(MEMORY,GFP_KERNEL);
+	if (kernel_buf == NULL) {
+		pr_info("Cannot allocate memory in kernel...!\n");
+		return -ENOMEM;
+	}
+
 	return 0;
 }
 
 static int chip_i2c_close(struct inode * inode, struct file *filep)
 {
-		pr_info("closed ....!\n");
+	pr_info("closed ....!\n");
+	kfree(kernel_buf);
 	mutex_unlock(&chip_i2c_mutex);
 	return 0;
 }
@@ -194,6 +213,11 @@ static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,lo
 	regs[6] = bcd2bin(ret); ret=0;
 	pr_info("Date : %d - %d -%d ...!\n",regs[4],regs[5],regs[6]);
 	
+	sprintf(kernel_buf,"Time = %d-%d-%d \n Date = %d-%d-%d \n",regs[2],regs[1],regs[0],regs[4],regs[5],regs[6]);
+	if(copy_to_user(buf,kernel_buf,MEMORY) != 0){
+		pr_err("%s: Unable to copy to the user..!\n",__FUNCTION__);
+		return -EFAULT;
+	}
 		
 err:
 	return ret;
@@ -240,7 +264,7 @@ MODULE_DEVICE_TABLE(i2c, ds3231_id);
 static const struct of_device_id ds3231_of_match[] = {
 	{
 		.compatible = "maxim,ds3231",
-		.data = (void *)0
+		.data = (void *)0,
 	},
 	{ }
 };
@@ -270,6 +294,11 @@ static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id
     
     mutex_init(&data->update_lock);
     chip_i2c_client = client;
+    retval = dev_configure();
+    if(retval < 0){
+    	pr_info("%s: Error in configuring the device..!\n",__FUNCTION__);
+    	goto err;
+    }
     
     chip_major = register_chrdev(0, CHIP_I2C_DEVICE_NAME,&chip_i2c_fops);
     
@@ -322,7 +351,6 @@ static int ds3231_remove(struct i2c_client * client)
     //device_remove_file(dev, &dev_attr_chip_switch);
 
     device_destroy(chip_class, MKDEV(chip_major, 0));
-    class_unregister(chip_class);
     class_destroy(chip_class);
     unregister_chrdev(chip_major, CHIP_I2C_DEVICE_NAME);
 
