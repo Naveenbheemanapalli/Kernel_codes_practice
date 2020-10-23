@@ -49,7 +49,7 @@ static const unsigned short normal_i2c[] = { 0x68, I2C_CLIENT_END };
 
 
 static int chip_read_value(struct i2c_client *client, u8 reg){
-	struct ds3231_data *data = i2c_get_clientdata(client);
+	//struct ds3231_data *data = i2c_get_clientdata(client);
 	int val = 0;
 	
 	dev_info(&client->dev, "%s\n", __FUNCTION__);
@@ -92,6 +92,7 @@ static int dev_configure(void){
 		pr_err("%s: error in the control register writing..!\n",__FUNCTION__);
 		return ret;
 	}
+	/*TODO checking need to done here for correction of time */
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL+1);
 	if(ret < 0){
 			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
@@ -152,8 +153,57 @@ static int chip_i2c_close(struct inode * inode, struct file *filep)
 
 static ssize_t chip_i2c_write(struct file *filep, const char __user * buf, size_t count, loff_t * offset)
 {
-		pr_info("write ....!\n");
-	return count;
+	int retval=0,i=0,flag=1,val=0;
+	pr_info("write ....!\n");
+	if(copy_from_user(kernel_buf,buf,MEMORY) != 0){
+		pr_err("%s: Unable to copy from user space..!\n",__FUNCTION__);
+		retval = -EFAULT;
+		goto err;
+	}
+	
+	for(i=0;kernel_buf[i];){
+		if(kernel_buf[i] >= '0' && kernel_buf[i] <= '9'){
+			if(flag != 6){
+				val = val*10 + kernel_buf[i]-'0';
+				val = val*10 + kernel_buf[i+1]-'0';
+				i = i+2;
+				flag++;
+			}
+			else{
+				val = val*10 + kernel_buf[i]-'0';
+				val = val*10 + kernel_buf[i+1]-'0';
+				val = val*10 + kernel_buf[i+2]-'0';
+				val = val*10 + kernel_buf[i+3]-'0';
+				flag++;
+				i = i+4;
+			}
+			switch(flag-1){
+			case 1 :
+				chip_write_value(chip_i2c_client,DS3231_REG_HOUR,val);
+				break;
+			case 2 :
+				chip_write_value(chip_i2c_client,DS3231_REG_MIN,val);	
+				break;
+			case 3 :
+				chip_write_value(chip_i2c_client,DS3231_REG_SECS,val);	
+				break;
+			case 4 :
+				chip_write_value(chip_i2c_client,DS3231_REG_MDAY,val);
+				break;
+			case 5 :
+				chip_write_value(chip_i2c_client,DS3231_REG_MONTH,val);	
+				break;
+			case 6 :
+				chip_write_value(chip_i2c_client,DS3231_REG_YEAR,val);
+				break;
+			default :
+				break;			
+			}
+		}
+	}
+	
+err :
+	return retval;
 }
 
 static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,loff_t *offset){
@@ -241,7 +291,7 @@ struct ds3231_data {
 	struct cdev				cdev;
 	//struct regmap 		*regmap;
 	struct mutex			update_lock;
-	//struct rtc_device 	*rtc; /* An RTC device is represented in the kernel as an instance of the struct rtc_device structure */
+	//struct rtc_device 	*rtc; 
 };
 
 static const struct file_operations chip_i2c_fops = {
@@ -281,7 +331,7 @@ MODULE_DEVICE_TABLE(of, ds3231_of_match);
 
 static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id){
 	int retval=0;
-	struct device * dev = &client->dev;
+	//struct device * dev = &client->dev;
   struct ds3231_data *data = NULL;
 	
     printk("chip_i2c: %s\n", __FUNCTION__);
@@ -341,7 +391,7 @@ err :
 
 static int ds3231_remove(struct i2c_client * client)
 {
-    struct device * dev = &client->dev;
+    //struct device * dev = &client->dev;
 
     printk("chip_i2c: %s\n", __FUNCTION__);
 
