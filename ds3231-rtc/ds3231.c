@@ -91,16 +91,16 @@ static int dev_configure(void){
 	if(ret < 0){
 		pr_err("%s: error in the control register writing..!\n",__FUNCTION__);
 		return ret;
-	}
+	} ret=0;
 	/*TODO checking need to done here for correction of time */
-	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_STATUS);
 	if(ret < 0){
 			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
 			return ret;	
 	}
 	if(ret & DS3231_BIT_OSF){
-		chip_write_value(chip_i2c_client,DS3231_REG_CONTROL,ret & ~DS3231_BIT_OSF);
-	}
+		chip_write_value(chip_i2c_client,DS3231_REG_STATUS,ret & ~DS3231_BIT_OSF);
+	} ret=0;
 	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
 	if(ret < 0){
@@ -108,7 +108,7 @@ static int dev_configure(void){
 		return ret;
 	}
 	tmp = ret;
-	if(!(ret & DS3231_REG_HOUR));
+	if(!(ret & DS3231_BIT_12HR));
 	else{
 		ret = bcd2bin(ret & 0x1f);
 		if(ret == 12)
@@ -179,22 +179,22 @@ static ssize_t chip_i2c_write(struct file *filep, const char __user * buf, size_
 			}
 			switch(flag-1){
 			case 1 :
-				chip_write_value(chip_i2c_client,DS3231_REG_HOUR,val);
+				chip_write_value(chip_i2c_client,DS3231_REG_HOUR,bin2bcd(val));
 				break;
 			case 2 :
-				chip_write_value(chip_i2c_client,DS3231_REG_MIN,val);	
+				chip_write_value(chip_i2c_client,DS3231_REG_MIN,bin2bcd(val));	
 				break;
 			case 3 :
-				chip_write_value(chip_i2c_client,DS3231_REG_SECS,val);	
+				chip_write_value(chip_i2c_client,DS3231_REG_SECS,bin2bcd(val));	
 				break;
 			case 4 :
-				chip_write_value(chip_i2c_client,DS3231_REG_MDAY,val);
+				chip_write_value(chip_i2c_client,DS3231_REG_MDAY,bin2bcd(val));
 				break;
 			case 5 :
-				chip_write_value(chip_i2c_client,DS3231_REG_MONTH,val);	
+				chip_write_value(chip_i2c_client,DS3231_REG_MONTH,bin2bcd(val));	
 				break;
 			case 6 :
-				chip_write_value(chip_i2c_client,DS3231_REG_YEAR,val);
+				chip_write_value(chip_i2c_client,DS3231_REG_YEAR,bin2bcd(val));
 				break;
 			default :
 				break;			
