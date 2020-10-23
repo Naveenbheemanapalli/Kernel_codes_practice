@@ -199,6 +199,7 @@ static ssize_t chip_i2c_write(struct file *filep, const char __user * buf, size_
 			default :
 				break;			
 			}
+			val = 0;
 		}
 	}
 	
