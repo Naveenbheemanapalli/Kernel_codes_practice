@@ -93,7 +93,7 @@ static int dev_configure(void){
 		return ret;
 	}
 	/*TODO checking need to done here for correction of time */
-	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL+1);
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
 	if(ret < 0){
 			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
 			return ret;	
