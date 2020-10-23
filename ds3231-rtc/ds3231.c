@@ -49,12 +49,12 @@ static const unsigned short normal_i2c[] = { 0x68, I2C_CLIENT_END };
 
 
 static int chip_read_value(struct i2c_client *client, u8 reg){
-	//struct ds3231_data *data = i2c_get_clientdata(client);
+	struct ds3231_data *data = i2c_get_clientdata(client);
 	int val = 0;
 	
 	dev_info(&client->dev, "%s\n", __FUNCTION__);
 	
-	//mutex_lock(&data->lock);
+	//mutex_lock(&data->update_lock);
   val = i2c_smbus_read_byte_data(client, reg);
   //mutex_unlock(&data->lock);
   
@@ -375,9 +375,6 @@ static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id
     
     mutex_init(&chip_i2c_mutex);
     
-    //device_create_file(dev,&dev_attr_set_time);
-    //device_create_file(dev,&dev_attr_get_time);
-    
     return 0;
 err2 :
 	class_destroy(chip_class);   
@@ -398,10 +395,7 @@ static int ds3231_remove(struct i2c_client * client)
 
     chip_i2c_client = NULL;
 
-    //device_remove_file(dev, &dev_attr_chip_led);
-    //device_remove_file(dev, &dev_attr_chip_switch);
-
-    device_destroy(chip_class, MKDEV(chip_major, 0));
+	  device_destroy(chip_class, MKDEV(chip_major, 0));
     class_destroy(chip_class);
     unregister_chrdev(chip_major, CHIP_I2C_DEVICE_NAME);
 
