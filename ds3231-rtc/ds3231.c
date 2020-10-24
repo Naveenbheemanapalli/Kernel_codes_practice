@@ -109,7 +109,7 @@ static int dev_configure(void){
 		return ret;
 	}
 	tmp = ret;
-	if(!(ret & DS3231_BIT_12HR));
+	if((ret & DS3231_BIT_12HR));
 	else{
 		ret = bcd2bin(ret & 0x1f);
 		if(ret == 12)
@@ -203,7 +203,7 @@ static ssize_t chip_i2c_write(struct file *filep, const char __user * buf, size_
 			val = 0;
 		}
 	}
-	
+	return count;
 err :
 	return retval;
 }
