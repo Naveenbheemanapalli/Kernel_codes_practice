@@ -232,7 +232,7 @@ static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,lo
 		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
 		goto err;
 	}
-	regs[2] = bcd2bin(ret & 0x3f); ret=0;
+	regs[2] = bcd2bin(ret & 0x1f); ret=0;
 	pr_info("Time : %d - %d -%d ...!\n",regs[2],regs[1],regs[0]);
 	
 	
