@@ -77,7 +77,8 @@ static int chip_write_value(struct i2c_client *client,u8 reg, u8 value){
 
 
 static int dev_configure(void){
-	int ret=0,tmp=0;
+	int ret=0;
+	unsigned int tmp=0;
 	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
 	if(ret < 0){
