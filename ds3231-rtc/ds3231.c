@@ -236,6 +236,31 @@ static ssize_t show_time(struct device *dev,struct device_attribute *attr, char 
 {
 	int len = 0;
 	pr_info("show function..!\n");
+	u8 regs[3];
+	int ret=0;
+	memset(regs,0,8);
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_SECS);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of seconds ..!\n",__FUNCTION__);
+		goto err;
+	}
+	regs[0] = bcd2bin(ret & 0x7f); ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_MIN);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of minutes ..!\n",__FUNCTION__);
+		goto err;
+	}
+	regs[1] = bcd2bin(ret & 0x7f); ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
+	if(ret < 0){
+		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
+		goto err;
+	}
+	regs[2] = bcd2bin(ret & 0x1f); ret=0;
+	pr_info("Time : %d - %d -%d ...!\n",regs[2],regs[1],regs[0]);
 	return len;
 }
 
