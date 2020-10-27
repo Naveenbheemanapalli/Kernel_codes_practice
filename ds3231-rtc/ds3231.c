@@ -235,11 +235,10 @@ err:
 static ssize_t show_time(struct device *dev,struct device_attribute *attr, char *buf)
 {
 	int len = 0;
-	pr_info("show function..!\n");
 	u8 regs[3];
 	int ret=0;
-	memset(regs,0,8);
-	
+	memset(regs,0,3);
+			pr_info("show function..!\n");	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_SECS);
 	if(ret < 0){
 		pr_info("%s: error in reading the value of seconds ..!\n",__FUNCTION__);
@@ -260,8 +259,10 @@ static ssize_t show_time(struct device *dev,struct device_attribute *attr, char 
 		goto err;
 	}
 	regs[2] = bcd2bin(ret & 0x3f); ret=0;
-	pr_info("Time : %d - %d -%d ...!\n",regs[2],regs[1],regs[0]);
+	sprintf(buf,"Time : %d - %d - %d ..!\n\n",regs[2],regs[1],regs[0]);
 	return len;
+err :
+	return 0;
 }
 
 static ssize_t store_time(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
