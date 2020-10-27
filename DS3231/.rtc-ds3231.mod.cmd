@@ -1,1 +1,0 @@
-cmd_/home/naveen/Desktop/kernel_trg/testing_codes/DS3231/rtc-ds3231.mod := { echo  /home/naveen/Desktop/kernel_trg/testing_codes/DS3231/rtc-ds3231.o; echo; } > /home/naveen/Desktop/kernel_trg/testing_codes/DS3231/rtc-ds3231.mod
