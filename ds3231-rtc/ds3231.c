@@ -51,7 +51,6 @@ static const unsigned short normal_i2c[] = { 0x68, I2C_CLIENT_END };
 
 
 static int chip_read_value(struct i2c_client *client, u8 reg){
-	struct ds3231_data *data = i2c_get_clientdata(client);
 	int val = 0;
 	
 	dev_info(&client->dev, "%s\n", __FUNCTION__);
@@ -231,7 +230,7 @@ err:
 /********************************* file operations completed ***************************************************/
 
 /********************************* sysfs file operatons ********************************************************/
-
+	/******************************* time *******************************************************************/
 static ssize_t show_time(struct device *dev,struct device_attribute *attr, char *buf)
 {
 	u8 regs[3];
@@ -266,17 +265,28 @@ err :
 
 static ssize_t store_time(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-	int i=0;
-	for(i=0;buf[i];i++){
-		if(buf[i] >= '0' && buf[i] <= '9'){
-			
+	int i=0,val=0,flag=0;
+	for(i=0;buf[i];){
+		if(buf[i] >= '0' && buf[i] <= '9' && buf[i+1] >= '0' && buf[i+1] <= '9'){
+			val = val * 10 + buf[i] - '0';
+			val = val * 10 + buf[i] - '0';
+			switch(flag){
+				default :
+					chip_write_value(chip_i2c_client,DS3231_REG_HOUR,bin2bcd(val)); break;
+				case 1 :
+					chip_write_value(chip_i2c_client,DS3231_REG_MIN,bin2bcd(val)); break;
+				case 2 :
+					chip_write_value(chip_i2c_client,DS3231_REG_SECS,bin2bcd(val)); break;
+			}
+			i = i+2;
+			flag++;
 		}
 	}	
-	
-		pr_info("get time ...!\n");
+	pr_info("get time ...!\n");
     return count;
 }
-
+/********************************** time  ************************************************/
+/********************************** date  ************************************************/
 static ssize_t show_date(struct device *dev,struct device_attribute *attr, char *buf)
 {
 	u8 regs[3];
@@ -320,10 +330,28 @@ err :
 
 static ssize_t store_date(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
+	int i=0,val=0,flag=0;
+	for(i=0;buf[i];){
+		if(buf[i] >= '0' && buf[i] <= '9' && buf[i+1] >= '0' && buf[i+1] <= '9'){
+			val = val * 10 + buf[i] - '0';
+			val = val * 10 + buf[i] - '0';
+			switch(flag){
+				default :
+					chip_write_value(chip_i2c_client,DS3231_REG_MDAY,bin2bcd(val)); break;
+				case 1 :
+					chip_write_value(chip_i2c_client,DS3231_REG_MONTH,bin2bcd(val)); break;
+				case 2 :
+					chip_write_value(chip_i2c_client,DS3231_REG_YEAR,bin2bcd(val)); break;
+			}
+			i = i+2;
+			flag++;
+		}
+	}	
+
 		pr_info("get time ...!\n");
     return count;
 }
-
+/************************************* date completed ***********************************************************/
 /************************************* sysfs file operations completed*******************************************/
 
 struct ds3231_data {
