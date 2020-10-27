@@ -35,6 +35,8 @@
 
 #define CHIP_I2C_DEVICE_NAME "rtc-ds3231"
 
+static int dev_configure(void);
+
 static struct i2c_client * chip_i2c_client = NULL;
 static struct class *chip_class = NULL;
 static struct device *device_chip = NULL;
@@ -74,54 +76,6 @@ static int chip_write_value(struct i2c_client *client,u8 reg, u8 value){
 	
 	return val;
 }
-
-
-static int dev_configure(void){
-	int ret=0;
-	unsigned int tmp=0;
-	
-	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
-	if(ret < 0){
-			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
-			return ret;	
-	}	
-	if( ret & DS3231_BIT_EOSC)
-		ret &= ~DS3231_BIT_EOSC;
-	
-	ret = chip_write_value(chip_i2c_client,DS3231_REG_CONTROL,ret);
-	if(ret < 0){
-		pr_err("%s: error in the control register writing..!\n",__FUNCTION__);
-		return ret;
-	} ret=0;
-	/*TODO checking need to done here for correction of time */
-	ret = chip_read_value(chip_i2c_client,DS3231_REG_STATUS);
-	if(ret < 0){
-			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
-			return ret;	
-	}
-	if(ret & DS3231_BIT_OSF){
-		chip_write_value(chip_i2c_client,DS3231_REG_STATUS,ret & ~DS3231_BIT_OSF);
-	} ret=0;
-	
-	ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
-	if(ret < 0){
-		pr_err("%s:  error in reading the DS3231_REG_HOUR register..!\n",__FUNCTION__);
-		return ret;
-	}
-	tmp = ret;
-	if((ret & DS3231_BIT_12HR));
-	else{
-		ret = bcd2bin(ret & 0x1f);
-		if(ret == 12)
-			ret = 0;
-		if(tmp & DS3231_BIT_PM)
-			ret += 12;
-		chip_write_value(chip_i2c_client,DS3231_REG_HOUR,bin2bcd(ret));
-	
-	}
-	return 0;		
-}
-
 
 ///////********************* file operations ***********************************///////////
 
@@ -274,19 +228,37 @@ static ssize_t chip_i2c_read(struct file *filep,char __user *buf,size_t count,lo
 err:
 	return ret;
 }
+/********************************* file operations completed ***************************************************/
 
-/*static ssize_t get_time_show(struct device *dev,struct device_attribute *attr, char *buf)
+/********************************* sysfs file operatons ********************************************************/
+
+static ssize_t show_time(struct device *dev,struct device_attribute *attr, char *buf)
 {
 	int len = 0;
 	pr_info("show function..!\n");
 	return len;
 }
 
-static ssize_t set_time_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t store_time(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
 		pr_info("get time ...!\n");
     return count;
-}*/
+}
+
+static ssize_t show_date(struct device *dev,struct device_attribute *attr, char *buf)
+{
+	int len = 0;
+	pr_info("show function..!\n");
+	return len;
+}
+
+static ssize_t store_date(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
+{
+		pr_info("get time ...!\n");
+    return count;
+}
+
+/************************************* sysfs file operations completed*******************************************/
 
 struct ds3231_data {
 	struct device 		*dev;
@@ -304,6 +276,11 @@ static const struct file_operations chip_i2c_fops = {
     .open = chip_i2c_open,
     .release = chip_i2c_close
 };
+
+/*************************************** sysfs declarations *****************************/
+
+static DEVICE_ATTR(time,0660, show_time, store_time);
+static DEVICE_ATTR(date, 0660, show_date, store_date);
 
 /******************************************IDs ****************************************/
 static const struct i2c_device_id ds3231_id[] = {
@@ -323,17 +300,59 @@ static const struct of_device_id ds3231_of_match[] = {
 MODULE_DEVICE_TABLE(of, ds3231_of_match);
 #endif
 /********************************************** IDs copied from old code ************************/
+static int dev_configure(void){
+	int ret=0;
+	unsigned int tmp=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_CONTROL);
+	if(ret < 0){
+			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
+			return ret;	
+	}	
+	if( ret & DS3231_BIT_EOSC)
+		ret &= ~DS3231_BIT_EOSC;
+	
+	ret = chip_write_value(chip_i2c_client,DS3231_REG_CONTROL,ret);
+	if(ret < 0){
+		pr_err("%s: error in the control register writing..!\n",__FUNCTION__);
+		return ret;
+	} ret=0;
+	/*TODO checking need to done here for correction of time */
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_STATUS);
+	if(ret < 0){
+			pr_err("%s: error in the control reading..!\n",__FUNCTION__);
+			return ret;	
+	}
+	if(ret & DS3231_BIT_OSF){
+		chip_write_value(chip_i2c_client,DS3231_REG_STATUS,ret & ~DS3231_BIT_OSF);
+	} ret=0;
+	
+	ret = chip_read_value(chip_i2c_client,DS3231_REG_HOUR);
+	if(ret < 0){
+		pr_err("%s:  error in reading the DS3231_REG_HOUR register..!\n",__FUNCTION__);
+		return ret;
+	}
+	tmp = ret;
+	if((ret & DS3231_BIT_12HR));
+	else{
+		ret = bcd2bin(ret & 0x1f);
+		if(ret == 12)
+			ret = 0;
+		if(tmp & DS3231_BIT_PM)
+			ret += 12;
+		chip_write_value(chip_i2c_client,DS3231_REG_HOUR,bin2bcd(ret));
+	
+	}
+	return 0;		
+}
 
-/* chip is write only */
-//static DEVICE_ATTR(set_time, 0660, NULL, set_time_store);
-/* chip is read only */
-//static DEVICE_ATTR(get_time, 0666, get_time_show, NULL);
+
 
 //////////////////////////******************* probing ******************************/////////////////////
 
 static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id){
 	int retval=0;
-	//struct device * dev = &client->dev;
+	struct device * dev = &client->dev;
   struct ds3231_data *data = NULL;
 	
     printk("chip_i2c: %s\n", __FUNCTION__);
@@ -376,6 +395,9 @@ static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id
     
     mutex_init(&chip_i2c_mutex);
     
+    device_create_file(dev,&dev_attr_time);
+    device_create_file(dev,&dev_attr_date);
+    
     return 0;
 err2 :
 	class_destroy(chip_class);   
@@ -384,17 +406,18 @@ err1 :
 err :
 	return retval;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /***************************************** Removing ****************************************************/
 
 static int ds3231_remove(struct i2c_client * client)
 {
-    //struct device * dev = &client->dev;
-
-    printk("chip_i2c: %s\n", __FUNCTION__);
+	struct device *dev = &client->dev;
+    pr_info("chip_i2c: %s\n", __FUNCTION__);
 
     chip_i2c_client = NULL;
+    
+    device_remove_file(dev,&dev_attr_time);
+    device_remove_file(dev,&dev_attr_date);
 
 	  device_destroy(chip_class, MKDEV(chip_major, 0));
     class_destroy(chip_class);
@@ -410,7 +433,7 @@ static int ds3231_detect(struct i2c_client * client, struct i2c_board_info * inf
     int address = client->addr;
     const char * name = NULL;
 
-    printk("chip_i2c: %s!\n", __FUNCTION__);
+    pr_info("chip_i2c: %s!\n", __FUNCTION__);
 
     if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
         return -ENODEV;
@@ -430,7 +453,6 @@ static int ds3231_detect(struct i2c_client * client, struct i2c_board_info * inf
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static struct i2c_driver ds3231_driver = {
-	.class = I2C_CLASS_HWMON,
 	.driver = {
 		.name	= CHIP_I2C_DEVICE_NAME,
 		.of_match_table = of_match_ptr(ds3231_of_match),
