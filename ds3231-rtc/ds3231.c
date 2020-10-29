@@ -257,8 +257,7 @@ static ssize_t show_time(struct device *dev,struct device_attribute *attr, char 
 		goto err;
 	}
 	regs[2] = bcd2bin(ret & 0x3f); ret=0;
-	sprintf(buf,"Time : %d - %d - %d ..!\n\n",regs[2],regs[1],regs[0]);
-	return 0;
+	return sprintf(buf,"Time : %d - %d - %d ..!\n\n",regs[2],regs[1],regs[0]);
 err :
 	return ret;
 }
@@ -289,9 +288,9 @@ static ssize_t store_time(struct device *dev,struct device_attribute *attr, cons
 /********************************** date  ************************************************/
 static ssize_t show_date(struct device *dev,struct device_attribute *attr, char *buf)
 {
-	u8 regs[3];
+	u8 regs[4];
 	int ret=0;
-	memset(regs,0,3);
+	memset(regs,0,4);
 	pr_info("show function..!\n");
 	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_WDAY);
@@ -299,30 +298,29 @@ static ssize_t show_date(struct device *dev,struct device_attribute *attr, char 
 		pr_info("%s: error in reading the value of Week day ..!\n",__FUNCTION__);
 		goto err;
 	}
-	regs[3] = bcd2bin(ret & 0x07); ret=0;	
+	regs[0] = bcd2bin(ret & 0x07); ret=0;	
 	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_MDAY);
 	if(ret < 0){
 		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
 		goto err;
 	}
-	regs[4] = bcd2bin(ret & 0x3f); ret=0;
+	regs[1] = bcd2bin(ret & 0x3f); ret=0;
 	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_MONTH);
 	if(ret < 0){
 		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
 		goto err;
 	}
-	regs[5] = bcd2bin(ret & 0x1f); ret=0;
+	regs[2] = bcd2bin(ret & 0x1f); ret=0;
 	
 	ret = chip_read_value(chip_i2c_client,DS3231_REG_YEAR);
 	if(ret < 0){
 		pr_info("%s: error in reading the value of hours ..!\n",__FUNCTION__);
 		goto err;
 	}
-	regs[6] = bcd2bin(ret); ret=0;
-	sprintf(buf,"Date : %d - %d - %d ..!\n\n",regs[4],regs[5],regs[6]);
-	return 0;
+	regs[3] = bcd2bin(ret); ret=0;
+	return sprintf(buf,"Date : %d - %d - %d ..!\n\n",regs[1],regs[2],regs[3]);
 
 err :
 	return ret;
