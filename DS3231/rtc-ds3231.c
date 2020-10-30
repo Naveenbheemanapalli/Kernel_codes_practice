@@ -36,12 +36,6 @@
 #	define DS3231_BIT_OSF		0x80
 #	define DS3231_BIT_EN32KHZ	0x08
 
-static ssize_t show_date(struct device *dev,struct device_attribute *attr, char *buf);
-static ssize_t store_time(struct device *dev,struct device_attribute *attr, const char *buf, size_t count);
-static ssize_t show_time(struct device *dev,struct device_attribute *attr, char *buf);
-static ssize_t store_date(struct device *dev,struct device_attribute *attr, const char *buf, size_t count);
-/////////////////////////////////////////////////////
-
 struct ds3231 {
 	struct device 		*dev;
 	struct regmap 		*regmap;
@@ -73,13 +67,6 @@ static const struct regmap_config regmap_config = {
 	.reg_bits=8,
 	.val_bits=8,
 };
-
-
-/*************************************** sysfs declarations *****************************/
-
-static DEVICE_ATTR(time,0660, show_time, store_time);
-static DEVICE_ATTR(date, 0660, show_date, store_date);
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -272,10 +259,7 @@ static int ds3231_probe(struct i2c_client *client,const struct i2c_device_id *id
 	if (err)
 		return err;
 		
-	device_create_file(ds3231->dev,&dev_attr_time);
-	device_create_file(ds3231->dev,&dev_attr_date);
-
-	return 0;
+return 0;
 }
 
 
@@ -292,206 +276,3 @@ struct i2c_driver ds3231_driver={
 module_i2c_driver(ds3231_driver);
 MODULE_DESCRIPTION("RTC driver for DS3231");
 MODULE_LICENSE("GPL");
-
-
-
-
-static ssize_t show_date(struct device *dev,struct device_attribute *attr, char *buf){
-	struct rtc_time *time;
-	struct ds3231 *ds3231;
-	int ret = 0;
-	time = kzalloc(sizeof(struct rtc_time),GFP_KERNEL);
-	if(time == NULL){
-		pr_err("Unable to allocate memory..!\n");
-		ret = PTR_ERR(time);
-		goto err;
-	}
-	ret = ds3231_get_time(ds3231->dev,time);
-	if(ret < 0){
-		pr_err("Unable to get the time ...!\n\n");
-		goto err;
-	}
-	
-		sprintf(buf,"DATE = %d - %d - %d ..!\n\n",time->tm_mday,time->tm_mon,time->tm_year);
-	return 0;
-
-err :
-	return ret;
-}
-
-static ssize_t store_date(struct device *dev,struct device_attribute *attr, const char *buf, size_t count){
-	int i=0,val=0,flag=0;
-	struct rtc_time *time;
-	struct ds3231 *ds3231;
-	
-	for(i=0;buf[i];){
-		if(buf[i] >= '0' && buf[i] <= '9' && buf[i+1] >= '0' && buf[i+1] <= '9'){
-			val = val * 10 + buf[i] - '0';
-			val = val * 10 + buf[i] - '0';
-			switch(flag){
-				default :
-					time->tm_mday = bin2bcd(val); break;
-				case 1 :
-					time->tm_mon = bin2bcd(val); break;
-				case 2 :
-					time->tm_year = bin2bcd(val); break;
-			}
-			i = i+2;
-			flag++;
-		}
-	}	
-	//ds3231_set_time(struct device *dev, struct rtc_time *t)
-	val = ds3231_set_time(ds3231->dev,time);
-	if(val < 0){
-		pr_err("Unable to set the time ...!\n\n");
-		return val;
-	}
-	
-	return count;
-}
-static ssize_t store_time(struct device *dev,struct device_attribute *attr, const char *buf, size_t count){
-	int i=0,val=0,flag=0;
-	struct rtc_time *time;
-	struct ds3231 *ds3231;
-	
-	for(i=0;buf[i];){
-		if(buf[i] >= '0' && buf[i] <= '9' && buf[i+1] >= '0' && buf[i+1] <= '9'){
-			val = val * 10 + buf[i] - '0';
-			val = val * 10 + buf[i] - '0';
-			switch(flag){
-				default :
-					time->tm_hour = bin2bcd(val); break;
-				case 1 :
-					time->tm_min = bin2bcd(val); break;
-				case 2 :
-					time->tm_sec = bin2bcd(val); break;
-			}
-			i = i+2;
-			flag++;
-		}
-	}	
-	//ds3231_set_time(struct device *dev, struct rtc_time *t)
-	val = ds3231_set_time(ds3231->dev,time);
-	if(val < 0){
-		pr_err("Unable to set the time ...!\n\n");
-		return val;
-	}
-	
-	return count;
-}
-
-static ssize_t show_time(struct device *dev,struct device_attribute *attr, char *buf){
-	struct rtc_time *time;
-	int ret=0;
-	struct ds3231 *ds3231;
-	time = kzalloc(sizeof(struct rtc_time),GFP_KERNEL);
-	if(time == NULL){
-		pr_err("Unable to allocate memory..!\n");
-		ret = PTR_ERR(time);
-		goto err;
-	}
-	ret = ds3231_get_time(ds3231->dev,time);
-	if(ret < 0){
-		pr_err("Unable to get the time ...!\n\n");
-		goto err;
-	}
-	
-		sprintf(buf,"TIME = %d - %d - %d ..!\n\n",time->tm_hour,time->tm_min,time->tm_sec);
-	return 0;
-
-err :
-	return ret;
-}
-
-/*********************************************sysfs operations **********************************************/
-/*
-static ssize_t show_date(struct device *dev,struct device_attribute *attr, char *buf){
-	struct ds3231 *ds3231=dev_get_drvdata(dev); 
-	u8 regs[3];
-	int tmp,ret;
-	const struct chip_desc *chip = &chips;
-
-	ret = regmap_bulk_read( ds3231->regmap , chip->offset+DS3231_REG_MDAY , regs , sizeof(regs) );
-	if (ret) {
-		dev_err(dev, "%s error %d\n", "read", ret);
-		return ret;
-	}
-	dev_dbg(dev, "%s: %7ph\n", "read", regs);
-
-	tmp = regs[DS3231_REG_SECS];
-	if(tmp & DS3231_BIT_CH)
-		return -EINVAL;
-
-	t->tm_sec = bcd2bin(regs[DS3231_REG_SECS] & 0x7f);
-	t->tm_min = bcd2bin(regs[DS3231_REG_MIN] & 0x7f);
-	tmp = regs[DS3231_REG_HOUR] & 0x3f;
-	t->tm_hour = bcd2bin(tmp);
-	t->tm_wday = bcd2bin(regs[DS3231_REG_WDAY] & 0x07) - 1;
-	t->tm_mday = bcd2bin(regs[DS3231_REG_MDAY] & 0x3f);
-	tmp = regs[DS3231_REG_MONTH] & 0x1f;
-	t->tm_mon = bcd2bin(tmp) - 1;
-	t->tm_year = bcd2bin(regs[DS3231_REG_YEAR]) + 100;
-
-	if (regs[chip->century_reg] & chip->century_bit &&
-			IS_ENABLED(CONFIG_RTC_DRV_DS1307_CENTURY))
-		t->tm_year += 100;
-
-	dev_dbg(dev, "%s secs=%d, mins=%d, "
-			"hours=%d, mday=%d, mon=%d, year=%d, wday=%d\n",
-			"read", t->tm_sec, t->tm_min,
-			t->tm_hour, t->tm_mday,
-			t->tm_mon, t->tm_year, t->tm_wday);
-
-	sprintf(buf,"DATE = %d - %d - %d ..!\n\n",t->tm_mday,t->tm_mon,t->tm_year);
-	return 0;
-}
-static ssize_t store_date(struct device *dev,struct device_attribute *attr, const char *buf, size_t count){
-
-	return count;
-}
-static ssize_t store_time(struct device *dev,struct device_attribute *attr, const char *buf, size_t count){
-
-	return count;
-}
-static ssize_t show_time(struct device *dev,struct device_attribute *attr, char *buf){
-	struct ds3231 *ds3231=dev_get_drvdata(dev); 
-	u8 regs[3];
-	int tmp,ret;
-	const struct chip_desc *chip = &chips;
-
-	ret = regmap_bulk_read( ds3231->regmap , chip->offset+DS3231_REG_MDAY , regs , sizeof(regs) );
-	if (ret) {
-		dev_err(dev, "%s error %d\n", "read", ret);
-		return ret;
-	}
-	dev_dbg(dev, "%s: %7ph\n", "read", regs);
-
-	tmp = regs[DS3231_REG_SECS];
-	if(tmp & DS3231_BIT_CH)
-		return -EINVAL;
-
-	t->tm_sec = bcd2bin(regs[DS3231_REG_SECS] & 0x7f);
-	t->tm_min = bcd2bin(regs[DS3231_REG_MIN] & 0x7f);
-	tmp = regs[DS3231_REG_HOUR] & 0x3f;
-	t->tm_hour = bcd2bin(tmp);
-	t->tm_wday = bcd2bin(regs[DS3231_REG_WDAY] & 0x07) - 1;
-	t->tm_mday = bcd2bin(regs[DS3231_REG_MDAY] & 0x3f);
-	tmp = regs[DS3231_REG_MONTH] & 0x1f;
-	t->tm_mon = bcd2bin(tmp) - 1;
-	t->tm_year = bcd2bin(regs[DS3231_REG_YEAR]) + 100;
-
-	if (regs[chip->century_reg] & chip->century_bit &&
-			IS_ENABLED(CONFIG_RTC_DRV_DS1307_CENTURY))
-		t->tm_year += 100;
-
-	dev_dbg(dev, "%s secs=%d, mins=%d, "
-			"hours=%d, mday=%d, mon=%d, year=%d, wday=%d\n",
-			"read", t->tm_sec, t->tm_min,
-			t->tm_hour, t->tm_mday,
-			t->tm_mon, t->tm_year, t->tm_wday);
-
-	sprintf(buf,"DATE = %d - %d - %d ..!\n\n",t->tm_hour,t->tm_min,t->tm_sec);
-	return 0;
-}
-
-/************************************************************************************************************/
