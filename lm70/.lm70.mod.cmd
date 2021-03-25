@@ -1,1 +1,0 @@
-cmd_/home/naveen/Desktop/kernel_trg/codes/Kernel_codes_practice/lm70/lm70.mod := { echo  /home/naveen/Desktop/kernel_trg/codes/Kernel_codes_practice/lm70/lm70.o;  echo; } > /home/naveen/Desktop/kernel_trg/codes/Kernel_codes_practice/lm70/lm70.mod
