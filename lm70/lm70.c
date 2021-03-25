@@ -22,6 +22,26 @@ static struct lm70 {
 	struct mutex mutex_lock;
 };
 
+static int lm70_probe(struct spi_device *spi)
+{ 
+	return 0;
+}
+
+
+static const struct of_device_id of_device_ids[] = {
+	{ .compatible = "ti,lm70",
+		.data	=	0
+	},
+	{},
+};
+MODULE_DEVICE_TABLE(of, of_device_ids);
+
+static const struct spi_device_id device_ids[] = {
+	{ "ti,lm70", 0},
+	{},
+};
+MODULE_DEVICE_TABLE(spi, device_ids);
+
 
 
 static struct spi_driver lm70_driver = {
