@@ -27,6 +27,9 @@ struct lm70 {
 };
 
 static ssize_t temp1_input_show(struct device *dev,struct device_attribute *attr, char *buf) {
+	struct lm70 *spi_device = dev_get_drvdata(dev);
+	struct spi_device *spi = spi_device->spi_dev;
+
 	return 0;
 }
 
@@ -74,6 +77,8 @@ static int lm70_probe(struct spi_device *spi)
 	spi_lm70->spi_dev = spi;
 	spi_lm70->chip = chip;
 	
+	dev_set_drvdata(&spi->dev,spi_lm70);
+	
 /*
 	device = spi_alloc_device(spi->controller);
 	if(device == NULL)
@@ -88,7 +93,7 @@ static int lm70_probe(struct spi_device *spi)
 	hwmon = devm_hwmon_device_register_with_groups(&spi->dev,spi->modalias,spi_lm70, lm70_groups);
 	
 	if(hwmon == NULL)
-		return PTR_ERR_OR_ZERO(hwmon_dev);
+		return PTR_ERR_OR_ZERO(hwmon);
 
 	return 0;
 }
