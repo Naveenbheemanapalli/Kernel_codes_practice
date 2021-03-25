@@ -16,28 +16,65 @@
 
 #define DRVNAME		"lm70"
 
+enum chips_lm70{
+	LM70_TEMPERATURE,
+};
 
-static struct lm70 {
+struct lm70 {
 	struct spi_device *spi_dev;
 	struct mutex mutex_lock;
+	int chip;
 };
 
 static int lm70_probe(struct spi_device *spi)
 { 
+	const struct of_device_id *match;
+	struct spi_device *device;
+	struct lm70 *spi_lm70;
+	int chip,ret;
+	
+	match = of_match_device(of_device_ids, &spi->dev);
+	if(match){
+		pr_err("Device of table registration success ..!\n");
+		chip = (int)(uintptr_t)match->data;
+	}
+	else {
+		chip = spi_get_device_id(spi)->driver_data;
+	}
+
+	spi_lm70 = devm_kzalloc(&spi->dev,sizeof(struct lm70),GFP_KERNEL);
+	if(spi_lm70 == NULL)
+		return -ENOMEM;
+		
+	mutex_init(&spi_lm70->mutex_lock);	
+	spi_lm70->spi_dev = spi;
+	spi_lm70->chip = chip;
+	
+
+	device = spi_alloc_device(spi->controller);
+	if(device == NULL)
+		return -ENODEV;
+	
+	ret = spi_add_device(spi);
+	if(!ret){
+		pr_err("Error on adding the device..!\n");
+		return ret;
+	}
+
 	return 0;
 }
 
 
 static const struct of_device_id of_device_ids[] = {
 	{ .compatible = "ti,lm70",
-		.data	=	0
+		.data	=	LM70_TEMPERATURE,
 	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, of_device_ids);
 
 static const struct spi_device_id device_ids[] = {
-	{ "ti,lm70", 0},
+	{ "ti,lm70", LM70_TEMPERATURE},
 	{},
 };
 MODULE_DEVICE_TABLE(spi, device_ids);
@@ -51,6 +88,7 @@ static struct spi_driver lm70_driver = {
 	},
 	.id_table = device_ids,
 	.probe = lm70_probe,
+	//.remove = lm70_remove,
 };
 
 module_spi_driver(lm70_driver);
