@@ -29,15 +29,29 @@ struct lm70 {
 static ssize_t temp1_input_show(struct device *dev,struct device_attribute *attr, char *buf) {
 	struct lm70 *spi_device = dev_get_drvdata(dev);
 	struct spi_device *spi = spi_device->spi_dev;
+	int status,val;
+	u8 regs[2];
+	s16 result;
 
-	return 0;
+	if(mutex_lock_interruptible(&spi_device->mutex_lock))
+		return -ERESTARTSYS;
+		
+	status = spi_write_then_read(spi,NULL,0,&regs[2],2);
+	if(status < 0){
+		pr_err("SPI read and write failed..!\n");
+		return status;
+	}
+
+	result = regs[0];
+	result = result < 8;
+	result = result + regs[1];
+	
+	val = ((int)result/32) * 250;
+	mutex_unlock(&spi_device->mutex_lock);
+	
+	
+	return sprintf(buf,"%d\n\n",val);
 }
-
-
-
-
-
-
 
 
 
