@@ -26,10 +26,34 @@ struct lm70 {
 	int chip;
 };
 
+static ssize_t temp1_input_show(struct device *dev,struct device_attribute *attr, char *buf) {
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+static DEVICE_ATTR_RO(temp1_input);
+
+static struct attribute *lm70_attrs[] = {
+	&dev_attr_temp1_input.attr,
+	NULL
+};
+
+ATTRIBUTE_GROUPS(lm70);
+
+
 static int lm70_probe(struct spi_device *spi)
 { 
 	const struct of_device_id *match;
 	struct spi_device *device;
+	struct device *hwmon;
 	struct lm70 *spi_lm70;
 	int chip,ret;
 	
@@ -50,7 +74,7 @@ static int lm70_probe(struct spi_device *spi)
 	spi_lm70->spi_dev = spi;
 	spi_lm70->chip = chip;
 	
-
+/*
 	device = spi_alloc_device(spi->controller);
 	if(device == NULL)
 		return -ENODEV;
@@ -59,7 +83,12 @@ static int lm70_probe(struct spi_device *spi)
 	if(!ret){
 		pr_err("Error on adding the device..!\n");
 		return ret;
-	}
+	}*/
+	
+	hwmon = devm_hwmon_device_register_with_groups(&spi->dev,spi->modalias,spi_lm70, lm70_groups);
+	
+	if(hwmon == NULL)
+		return PTR_ERR_OR_ZERO(hwmon_dev);
 
 	return 0;
 }
