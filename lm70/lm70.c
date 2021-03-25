@@ -69,10 +69,10 @@ ATTRIBUTE_GROUPS(lm70);
 static int lm70_probe(struct spi_device *spi)
 { 
 	const struct of_device_id *match;
-	struct spi_device *device;
+	//struct spi_device *device;
 	struct device *hwmon;
 	struct lm70 *spi_lm70;
-	int chip,ret;
+	int chip=0;
 	
 	match = of_match_device(of_device_ids, &spi->dev);
 	if(match){
@@ -112,6 +112,18 @@ static int lm70_probe(struct spi_device *spi)
 	return 0;
 }
 
+int lm70_remove(struct spi_device *spi){
+	struct lm70 *spi_device;
+	devm_hwmon_device_unregister(&spi->dev);
+	spi_device = dev_get_drvdata(&spi->dev);
+	
+	dev_set_drvdata(&spi->dev,NULL);
+
+	return 0;
+}
+
+
+
 
 static const struct of_device_id of_device_ids[] = {
 	{ .compatible = "ti,lm70",
@@ -136,7 +148,7 @@ static struct spi_driver lm70_driver = {
 	},
 	.id_table = device_ids,
 	.probe = lm70_probe,
-	//.remove = lm70_remove,
+	.remove = lm70_remove,
 };
 
 module_spi_driver(lm70_driver);
